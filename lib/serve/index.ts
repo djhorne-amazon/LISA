@@ -169,6 +169,8 @@ export class LisaServeApplicationStack extends Stack {
             credentials: dbCreds,
             securityGroups: [litellmDbSg!],
             removalPolicy: config.removalPolicy,
+            // monitoringRole: '',
+            // cloudwatchLogsRetentionRole: '',
         });
 
         const litellmDbPasswordSecret = litellmDb.secret!;

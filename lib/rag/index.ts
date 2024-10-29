@@ -39,6 +39,7 @@ import { Layer } from '../core/layers';
 import { createCdkId } from '../core/utils';
 import { Vpc } from '../networking/vpc';
 import { BaseProps, RagRepositoryType } from '../schema';
+import { Roles } from '../core/iam/roles';
 
 const HERE = path.resolve(__dirname);
 const RAG_LAYER_PATH = path.join(HERE, 'layer');
@@ -108,10 +109,10 @@ export class LisaRagStack extends Stack {
 
         const lambdaRole = Role.fromRoleArn(
             this,
-            'LISARagAPILambdaExecutionRole',
+            Roles.RAG_API_LAMBDA_EXECUTION_ROLE,
             StringParameter.valueForStringParameter(
                 this,
-                `${config.deploymentPrefix}/roles/${createCdkId([config.deploymentName, 'RAGRole'])}`,
+                `${config.deploymentPrefix}/roles/${createCdkId([config.deploymentName, Roles.RAG_LAMBDA_EXECUTION_ROLE])}`,
             ),
         );
         bucket.grantRead(lambdaRole);

@@ -98,7 +98,7 @@ In preparation of the v3.1.0 release, there are several changes that we needed t
 
 LISA is a robust, AWS-native platform designed to simplify the deployment and management of Large Language Models (LLMs) in scalable, secure, and highly available environments. Drawing inspiration from the AWS open-source project [aws-genai-llm-chatbot](https://github.com/aws-samples/aws-genai-llm-chatbot), LISA builds on this foundation by offering more specialized functionality, particularly in the areas of security, modularity, and flexibility.
 
-One of the key differentiators of LISA is its ability to leverage the [text-generation-inference](https://github.com/huggingface/text-generation-inference/tree/main) text-generation-inference container from HuggingFace, allowing users to deploy cutting-edge LLMs. LISA also introduces several innovations that extend beyond its inspiration:
+One of the key differentiators of LISA is its ability to leverage the [text-generation-inference](https://github.com/huggingface/text-generation-inference/tree/main) container from HuggingFace, allowing users to deploy cutting-edge LLMs. LISA also introduces several innovations that extend beyond its inspiration:
 
 1. **Support for Amazon Dedicated Cloud (ADC):** LISA is designed to operate in highly controlled environments like Amazon Dedicated Cloud (ADC) partitions, making it ideal for industries with stringent regulatory and security requirements. This focus on secure, isolated deployments differentiates LISA from other open-source platforms.
 1. **Modular Design for Composability:** LISA's architecture is designed to be composable, splitting its components into distinct services. The core components, LISA Serve (for LLM serving and inference) and LISA Chat (for the chat interface), can be deployed as independent stacks. This modularity allows users to deploy only the parts they need, enhancing flexibility and scalability across different deployment environments.
@@ -202,6 +202,7 @@ Before beginning, ensure you have:
 5. Node.js 14 or later
 6. Docker installed and running
 7. Sufficient disk space for model downloads and conversions
+8. (Optional) A [Huggingface](https://huggingface.co/) account with API authentication token to pull existing model containers
 
 If you're new to CDK, review the [AWS CDK Documentation](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html) and consult with your AWS support team.
 
@@ -385,11 +386,13 @@ When deploying for dev and testing you can use a self-signed certificate for the
 
 ```bash
 export REGION=<your-region>
+export CERT_NAME=<certificate-name>
 ./scripts/gen-certs.sh
-aws iam upload-server-certificate --server-certificate-name <cert-name> --certificate-body file://scripts/server.pem --private-key file://scripts/server.key
+aws iam upload-server-certificate --server-certificate-name $CERT_NAME --certificate-body file://scripts/server.pem --private-key file://scripts/server.key | \
+  jq .ServerCertificateMetadata.Arn
 ```
 
-Update your `config.yaml` with the certificate ARN:
+Update your `config.yaml` with the certificate ARN (output in previous step):
 
 ```yaml
 restApiConfig:

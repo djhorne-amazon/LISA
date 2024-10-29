@@ -21,6 +21,8 @@ import { Construct } from 'constructs';
 import { CustomAuthorizer } from '../api-base/authorizer';
 import { BaseProps } from '../schema';
 import { Vpc } from '../networking/vpc';
+import { Roles } from './iam/roles';
+import { Role } from 'aws-cdk-lib/aws-iam';
 
 type LisaApiBaseStackProps = {
     vpc: Vpc;
@@ -58,9 +60,11 @@ export class LisaApiBaseStack extends Stack {
             binaryMediaTypes: ['font/*', 'image/*'],
         });
 
+        const role = config.roles?.[Roles.REST_API_AUTHORIZER_ROLE] ? Role.fromRoleName(this, 'AuthorizerRole', config.roles[Roles.REST_API_AUTHORIZER_ROLE]) : undefined;
         // Create the authorizer Lambda for APIGW
         const authorizer = new CustomAuthorizer(this, 'LisaApiAuthorizer', {
             config: config,
+            role,
             vpc,
         });
 

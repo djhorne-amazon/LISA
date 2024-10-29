@@ -37,6 +37,7 @@ type UpdateModelStateMachineProps = BaseProps & {
     securityGroups?: ISecurityGroup[];
     restApiContainerEndpointPs: IStringParameter;
     managementKeyName: string;
+    executionRole?: IRole;
 };
 
 
@@ -57,7 +58,8 @@ export class UpdateModelStateMachine extends Construct {
             vpc,
             securityGroups,
             restApiContainerEndpointPs,
-            managementKeyName
+            managementKeyName,
+            executionRole
         } = props;
 
         const environment = {  // Environment variables to set in all Lambda functions
@@ -169,6 +171,7 @@ export class UpdateModelStateMachine extends Construct {
 
         const stateMachine = new StateMachine(this, 'UpdateModelSM', {
             definitionBody: DefinitionBody.fromChainable(handleJobIntake),
+            role: executionRole
         });
 
         this.stateMachineArn = stateMachine.stateMachineArn;

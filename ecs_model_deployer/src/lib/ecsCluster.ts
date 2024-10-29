@@ -58,6 +58,8 @@ type ECSClusterProps = {
     securityGroup: ISecurityGroup;
     vpc: IVpc;
     subnetSelection?: SubnetSelection;
+    taskRoleName?: string;
+    executionRoleName?: string;
 } & BaseProps;
 
 /**
@@ -69,6 +71,8 @@ export class ECSCluster extends Construct {
 
     /** IAM role associated with the ECS Cluster task */
     public readonly taskRole: IRole;
+    /** IAM role associated with the ECS Cluster execution */
+    public readonly executionRole: IRole;
 
     /** Endpoint URL of application load balancer for the cluster. */
     public readonly endpointUrl: string;
@@ -80,7 +84,7 @@ export class ECSCluster extends Construct {
    */
     constructor (scope: Construct, id: string, props: ECSClusterProps) {
         super(scope, id);
-        const { config, vpc, securityGroup, ecsConfig, subnetSelection } = props;
+        const { config, vpc, securityGroup, ecsConfig, subnetSelection, taskRoleName, executionRoleName } = props;
 
         // Create ECS cluster
         const cluster = new Cluster(this, createCdkId([ecsConfig.identifier, 'Cl']), {
@@ -183,29 +187,23 @@ export class ECSCluster extends Construct {
             environment.SSL_CERT_FILE = config.certificateAuthorityBundle;
         }
 
-        const taskPolicyId = createCdkId([config.deploymentName, 'ECSPolicy']);
-        const taskPolicyStringParam = StringParameter.fromStringParameterName(this, 'taskPolicyStringParam',
-            `${config.deploymentPrefix}/policies/${taskPolicyId}`
-        );
-        const taskPolicy = ManagedPolicy.fromManagedPolicyArn(this, taskPolicyId, taskPolicyStringParam.stringValue);
-        const role_id = ecsConfig.identifier;
-        const roleName = createCdkId([config.deploymentName, role_id, 'Role']);
-        const taskRole = new Role(this, createCdkId([role_id, 'Role']), {
-            assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
-            roleName,
-            description: `Allow ${role_id} ${role_id} ECS task access to AWS resources`,
-            managedPolicies: [taskPolicy],
-        });
-        new StringParameter(this, createCdkId([config.deploymentName, role_id, 'SP']), {
-            parameterName: `${config.deploymentPrefix}/roles/${role_id}`,
-            stringValue: taskRole.roleArn,
-            description: `Role ARN for LISA ${role_id} ${role_id} ECS Task`,
-        });
+        const stackName = config.deploymentName
+        const roleId = ecsConfig.identifier;
+
+        const executionRoleId = createCdkId([config.deploymentName, roleId, 'EX']);
+        const executionRole = executionRoleName ?
+            Role.fromRoleName(this, executionRoleId, executionRoleName) :
+            this.createExecutionRole(stackName, config.deploymentPrefix, roleId);
+
+        const taskRole = taskRoleName ?
+            Role.fromRoleName(this, createCdkId([config.deploymentName, roleId]), taskRoleName) :
+            this.createTaskRole(stackName, config.deploymentPrefix, roleId);
 
         // Create ECS task definition
         const taskDefinition = new Ec2TaskDefinition(this, createCdkId([ecsConfig.identifier, 'Ec2TaskDefinition']), {
             family: createCdkId([config.deploymentName, ecsConfig.identifier], 32, 2),
-            taskRole: taskRole,
+            taskRole,
+            executionRole,
             volumes: volumes,
         });
 
@@ -351,5 +349,76 @@ export class ECSCluster extends Construct {
         // Update
         this.container = container;
         this.taskRole = taskRole;
+        this.executionRole = executionRole;
+    }
+
+    createTaskRole(stackName: string, deploymentPrefix: string | undefined, roleId: string): IRole {
+        const taskPolicyId = createCdkId([stackName, 'ECSPolicy']);
+        const taskPolicyStringParam = StringParameter.fromStringParameterName(this, 'taskPolicyStringParam',
+            `${deploymentPrefix}/policies/${taskPolicyId}`
+        );
+
+        const taskPolicy = ManagedPolicy.fromManagedPolicyArn(this, taskPolicyId, taskPolicyStringParam.stringValue);
+        const roleName = createCdkId([stackName, roleId, 'Role']);
+        const role = new Role(this,roleName, {
+            assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
+            roleName,
+            description: `Allow ${roleId} ECS task access to AWS resources`,
+            managedPolicies: [taskPolicy],
+        });
+
+        new StringParameter(this, createCdkId([stackName, roleId, 'SP']), {
+            parameterName: `${deploymentPrefix}/roles/${roleId}`,
+            stringValue: role.roleArn,
+            description: `Role ARN for LISA ${roleId} ECS Task`,
+        });
+
+        return role;
+    }
+
+    createExecutionRole(stackName: string, deploymentPrefix: string | undefined, roleId: string): IRole {
+        const taskPolicyId = createCdkId([stackName, 'EcsExPolicy']);
+        const taskPolicyStringParam = StringParameter.fromStringParameterName(this, 'taskPolicyStringParam',
+            `${deploymentPrefix}/policies/${taskPolicyId}`
+        );
+
+        const taskPolicy = ManagedPolicy.fromManagedPolicyArn(this, taskPolicyId, taskPolicyStringParam.stringValue);
+        const roleName = createCdkId([roleId, 'Role']);
+        const role = new Role(this,roleName, {
+            assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
+            roleName,
+            description: `Allow ${roleId} ECS task access to AWS resources`,
+            managedPolicies: [taskPolicy],
+        });
+
+        new StringParameter(this, createCdkId([stackName, roleId, 'SP']), {
+            parameterName: `${deploymentPrefix}/roles/${roleId}`,
+            stringValue: role.roleArn,
+            description: `Role ARN for LISA ${roleId} ECS Task`,
+        });
+
+        return role;
+        // {
+        //     "Action": [
+        //         "ecr:BatchCheckLayerAvailability",
+        //         "ecr:BatchGetImage",
+        //         "ecr:GetDownloadUrlForLayer"
+        //     ],
+        //     "Resource": "arn:aws:ecr:us-west-2:418295723631:repository/cdk-hnb659fds-container-assets-418295723631-us-west-2",
+        //     "Effect": "Allow"
+        // },
+        // {
+        //     "Action": "ecr:GetAuthorizationToken",
+        //     "Resource": "*",
+        //     "Effect": "Allow"
+        // },
+        // {
+        //     "Action": [
+        //         "logs:CreateLogStream",
+        //         "logs:PutLogEvents"
+        //     ],
+        //     "Resource": "arn:aws:logs:us-west-2:418295723631:log-group:app-lisa-serve-dev-RestApiECSClusterRESTEc2TaskDefinitionRESTContainerLogGroup01AB5F5D-xFXpvCqfSXub:*",
+        //     "Effect": "Allow"
+        // }
     }
 }

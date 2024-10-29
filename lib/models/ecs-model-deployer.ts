@@ -16,12 +16,13 @@
 
 import { Construct } from 'constructs';
 import { DockerImageCode, DockerImageFunction, IFunction } from 'aws-cdk-lib/aws-lambda';
-import { Role, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Role, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement, IRole } from 'aws-cdk-lib/aws-iam';
 import { Stack, Duration, Size } from 'aws-cdk-lib';
 
 import { createCdkId } from '../core/utils';
 import { BaseProps, Config } from '../schema';
 import { Vpc } from '../networking/vpc';
+import { Roles } from '../core/iam/roles';
 
 export type ECSModelDeployerProps = {
     securityGroupId: string;
@@ -34,21 +35,12 @@ export class ECSModelDeployer extends Construct {
     constructor (scope: Construct, id: string, props: ECSModelDeployerProps) {
         super(scope, id);
         const stackName = Stack.of(scope).stackName;
-        const role = new Role(this, createCdkId([stackName, 'ecs-model-deployer-role']), {
-            assumedBy: new ServicePrincipal('lambda.amazonaws.com')
-        });
+        const {config} = props;
 
-        const assumeCdkPolicy = new Policy(this, createCdkId([stackName, 'ecs-model-deployer-policy']), {
-            statements: [
-                new PolicyStatement({
-                    actions: ['sts:AssumeRole'],
-                    resources: ['arn:*:iam::*:role/cdk-*']
-                })
-            ]
-        });
-
-        role.attachInlinePolicy(assumeCdkPolicy);
-        role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'));
+        const roleName = createCdkId([stackName, 'ecs-model-deployer-role'])
+        const role = config.roles?.[Roles.ECS_MODEL_DEPLOYER_ROLE] ?
+                Role.fromRoleName(this, roleName, config.roles[Roles.ECS_MODEL_DEPLOYER_ROLE]) :
+                this.createEcsModelDeployerRole(stackName, roleName);
 
         const stripped_config = {
             'appName': props.config.appName,
@@ -59,7 +51,8 @@ export class ECSModelDeployer extends Construct {
             's3BucketModels': props.config.s3BucketModels,
             'mountS3DebUrl': props.config.mountS3DebUrl,
             'permissionsBoundaryAspect': props.config.permissionsBoundaryAspect,
-            'subnetIds': props.config.subnetIds
+            'subnetIds': props.config.subnetIds,
+            'taskRole': props.config.roles?.[Roles.ECS_MODEL_TASK_ROLE]
         };
 
         const functionId = createCdkId([stackName, 'ecs_model_deployer']);
@@ -78,5 +71,29 @@ export class ECSModelDeployer extends Construct {
             vpc: props.vpc?.subnetSelection ? props.vpc?.vpc : undefined,
             vpcSubnets: props.vpc?.subnetSelection,
         });
+    }
+
+    /**
+     * Create ECS model deployer role
+     * @param stackName - deployment stack name
+     * @returns new role
+     */
+    private createEcsModelDeployerRole(stackName: string, roleName: string) {
+        const role = new Role(this, roleName, {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com')
+        });
+
+        const assumeCdkPolicy = new Policy(this, createCdkId([stackName, 'ecs-model-deployer-policy']), {
+            statements: [
+                new PolicyStatement({
+                    actions: ['sts:AssumeRole'],
+                    resources: ['arn:*:iam::*:role/cdk-*']
+                })
+            ]
+        });
+
+        role.attachInlinePolicy(assumeCdkPolicy);
+        role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'));
+        return role;
     }
 }

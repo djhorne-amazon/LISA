@@ -15,15 +15,17 @@
 */
 
 import { Construct } from 'constructs';
+import { IRole, PolicyDocument, Effect } from 'aws-cdk-lib/aws-iam';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Role, InstanceProfile, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Stack, Duration } from 'aws-cdk-lib';
-import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Bucket, IBucket } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 
 import { createCdkId } from '../core/utils';
 import { BaseProps } from '../schema';
 import { Vpc } from '../networking/vpc';
+import { Roles } from '../core/iam/roles';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 
 export type DockerImageBuilderProps = BaseProps & {
@@ -40,74 +42,32 @@ export class DockerImageBuilder extends Construct {
 
         const stackName = Stack.of(scope).stackName;
 
-        const ec2InstanceProfileRole = new Role(this, createCdkId([stackName, 'docker-image-builder-ec2-role']), {
-            roleName: createCdkId([stackName, 'docker-image-builder-ec2-role']),
-            assumedBy: new ServicePrincipal('ec2.amazonaws.com')
-        });
+        const { config } = props;
 
+        const sources = [Source.asset('./lib/serve/ecs-model/')];
         const ec2DockerBucket = new Bucket(this, createCdkId([stackName, 'docker-image-builder-ec2-bucket']));
+
+        const dockerDeploymentRoleName = createCdkId([stackName, Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE]);
+        const dockerDeploymentRole = config.roles?.[Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE] ?
+            Role.fromRoleName(this, dockerDeploymentRoleName, config.roles[Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE]) :
+            this.createBucketDeploymentRole(dockerDeploymentRoleName, ec2DockerBucket);
+
         new BucketDeployment(this, createCdkId([stackName, 'docker-image-builder-ec2-dplmnt']), {
-            sources: [Source.asset('./lib/serve/ecs-model/')],
-            destinationBucket: ec2DockerBucket
+            sources,
+            destinationBucket: ec2DockerBucket,
+            role: dockerDeploymentRole
         });
 
-        const ec2InstanceProfilePolicy = new Policy(this, createCdkId([stackName, 'docker-image-builder-ec2-policy']), {
-            statements: [
-                new PolicyStatement({
-                    actions: [
-                        's3:GetObject',
-                    ],
-                    resources: [`${ec2DockerBucket.bucketArn}/*`]
-                }),
-                new PolicyStatement({
-                    actions: [
-                        's3:ListBucket',
-                    ],
-                    resources: [ec2DockerBucket.bucketArn]
-                }),
-                new PolicyStatement({
-                    actions: [
-                        'ecr:GetAuthorizationToken',
-                        'ecr:InitiateLayerUpload',
-                        'ecr:UploadLayerPart',
-                        'ecr:CompleteLayerUpload',
-                        'ecr:PutImage',
-                        'ecr:BatchCheckLayerAvailability'
-                    ],
-                    resources: ['*']
-                })
-            ]
-        });
+        const ec2InstanceRoleName = createCdkId([stackName, 'docker-image-builder-ec2-role']);
+        const ec2InstanceProfileRole = config.roles?.[Roles.DOCKER_IMAGE_BUILDER_EC2_ROLE] ?
+            Role.fromRoleName(this, ec2InstanceRoleName, config.roles[Roles.DOCKER_IMAGE_BUILDER_EC2_ROLE]) :
+            this.createEc2InstanceRole(stackName, ec2InstanceRoleName, ec2DockerBucket.bucketArn);
 
-        ec2InstanceProfileRole.attachInlinePolicy(ec2InstanceProfilePolicy);
 
-        const role = new Role(this, createCdkId([stackName, 'docker_image_builder_role']), {
-            roleName: createCdkId([stackName, 'docker_image_builder_role']),
-            assumedBy: new ServicePrincipal('lambda.amazonaws.com')
-        });
-
-        const assumeCdkPolicy = new Policy(this, createCdkId([stackName, 'docker-image-builder-policy']), {
-            statements: [
-                new PolicyStatement({
-                    actions: [
-                        'ec2:RunInstances',
-                        'ec2:CreateTags'
-                    ],
-                    resources: ['*']
-                }),
-                new PolicyStatement({
-                    actions: ['iam:PassRole'],
-                    resources: [ec2InstanceProfileRole.roleArn]
-                }),
-                new PolicyStatement({
-                    actions: ['ssm:GetParameter'],
-                    resources: ['arn:*:ssm:*::parameter/aws/service/*']
-                })
-            ]
-        });
-
-        role.attachInlinePolicy(assumeCdkPolicy);
-        role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'));
+        const ec2BuilderRoleName = createCdkId([stackName, 'docker_image_builder_role']);
+        const ec2BuilderRole = config.roles?.[Roles.DOCKER_IMAGE_BUILDER_ROLE] ?
+            Role.fromRoleName(this, ec2BuilderRoleName, config.roles[Roles.DOCKER_IMAGE_BUILDER_ROLE]) :
+            this.createEc2BuilderRole(stackName, ec2BuilderRoleName, ec2InstanceProfileRole.roleArn);
 
         const ec2InstanceProfileId = createCdkId([stackName, 'docker-image-builder-profile']);
         const ec2InstanceProfile = new InstanceProfile(this, ec2InstanceProfileId, {
@@ -127,9 +87,9 @@ export class DockerImageBuilder extends Construct {
             handler: 'dockerimagebuilder.handler',
             code: Code.fromAsset('./lambda/'),
             timeout: Duration.minutes(1),
-            memorySize: 1024,
             reservedConcurrentExecutions: 10,
-            role: role,
+            memorySize: 1024,
+            role: ec2BuilderRole,
             environment: {
                 'LISA_DOCKER_BUCKET': ec2DockerBucket.bucketName,
                 'LISA_ECR_URI': props.ecrUri,
@@ -138,6 +98,138 @@ export class DockerImageBuilder extends Construct {
             },
             vpc: props.vpc?.subnetSelection ? props.vpc?.vpc : undefined,
             vpcSubnets: props.vpc?.subnetSelection,
+        });
+    }
+
+    /**
+     * Create EC2 instance role
+     * @param stackName - deployment stack name
+     * @param roleName - role name
+     * @param dockerBucketArn - bucket arn containing docker images
+     * @returns new role
+     */
+    createEc2InstanceRole (stackName: string, roleName: string, dockerBucketArn: string): IRole {
+        const role = new Role(this, roleName, {
+            roleName,
+            assumedBy: new ServicePrincipal('ec2.amazonaws.com')
+        });
+
+        const ec2InstanceProfilePolicy = new Policy(this, createCdkId([stackName, 'docker-image-builder-ec2-policy']), {
+            statements: [
+                new PolicyStatement({
+                    actions: [
+                        's3:GetObject',
+                    ],
+                    resources: [`${dockerBucketArn}/*`]
+                }),
+                new PolicyStatement({
+                    actions: [
+                        's3:ListBucket',
+                    ],
+                    resources: [dockerBucketArn]
+                }),
+                new PolicyStatement({
+                    actions: [
+                        'ecr:GetAuthorizationToken',
+                        'ecr:InitiateLayerUpload',
+                        'ecr:UploadLayerPart',
+                        'ecr:CompleteLayerUpload',
+                        'ecr:PutImage',
+                        'ecr:BatchCheckLayerAvailability'
+                    ],
+                    resources: ['*']
+                })
+            ]
+        });
+
+        role.attachInlinePolicy(ec2InstanceProfilePolicy);
+
+        return role;
+    }
+
+    /**
+     * Create EC2 builder role
+     * @param stackName - deployment stack name
+     * @param roleName - role name
+     * @param ec2InstanceRoleArn - EC2 Instance role arn
+     * @returns new role
+     */
+    createEc2BuilderRole (stackName: string, roleName: string, ec2InstanceRoleArn: string): IRole {
+        const role = new Role(this, roleName, {
+            roleName,
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com')
+        });
+
+        const assumeCdkPolicy = new Policy(this, createCdkId([stackName, 'docker-image-builder-policy']), {
+            statements: [
+                new PolicyStatement({
+                    actions: [
+                        'ec2:RunInstances',
+                        'ec2:CreateTags'
+                    ],
+                    resources: ['*']
+                }),
+                new PolicyStatement({
+                    actions: ['iam:PassRole'],
+                    resources: [ec2InstanceRoleArn]
+                }),
+                new PolicyStatement({
+                    actions: ['ssm:GetParameter'],
+                    resources: ['arn:*:ssm:*::parameter/aws/service/*']
+                })
+            ]
+        });
+
+        role.attachInlinePolicy(assumeCdkPolicy);
+        role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'));
+        return role;
+    }
+
+    /**
+     * Create bucket deployment role
+     * @param roleName - role name
+     * @param destinationBucket - bucket
+     * @returns new role
+     */
+    createBucketDeploymentRole (roleName: string, destinationBucket: IBucket) {
+        return new Role(this, roleName, {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+            roleName,
+            description: 'S3 Deployment Role used by LISA transfer assets',
+            managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')],
+            inlinePolicies: {
+                deployerPermissions: new PolicyDocument({
+                    statements: [
+                        // Source files
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: [
+                                's3:GetBucket*',
+                                's3:GetObject*',
+                                's3:List*'
+                            ],
+                            resources: ['arn:aws:s3:::cdk*']
+                        }),
+                        // Destination
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: [
+                                's3:Abort*',
+                                's3:DeleteObject*',
+                                's3:GetBucket*',
+                                's3:GetObject*',
+                                's3:List*',
+                                's3:PutObject',
+                                's3:PutObjectLegalHold',
+                                's3:PutObjectRetention',
+                                's3:PutObjectTagging',
+                                's3:PutObjectVersionTagging'
+                            ],
+                            resources: [destinationBucket.bucketArn, `${destinationBucket.bucketArn}/*`]
+                        }),
+                    ]
+                }),
+            }
         });
 
     }

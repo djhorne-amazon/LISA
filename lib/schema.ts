@@ -523,6 +523,11 @@ const AuthConfigSchema = z.object({
 });
 
 /**
+ * Configuration schema for Role overrides. This is a simple key value map with additional constraints.
+ */
+const RoleOverrides = z.record(z.string().endsWith('Role'), z.string().max(64))
+
+/**
  * Configuration schema for RDS Instances needed for LiteLLM scaling or PGVector RAG operations.
  *
  * The optional fields can be omitted to create a new database instance, otherwise fill in all fields to use
@@ -734,6 +739,7 @@ const RawConfigSchema = z
         deployUi: z.boolean().optional().default(true),
         logLevel: z.union([z.literal('DEBUG'), z.literal('INFO'), z.literal('WARNING'), z.literal('ERROR')]).default('DEBUG'),
         authConfig: AuthConfigSchema.optional(),
+        roles: RoleOverrides.optional(),
         pypiConfig: PypiConfigSchema.optional().default({
             indexUrl: '',
             trustedHost: '',

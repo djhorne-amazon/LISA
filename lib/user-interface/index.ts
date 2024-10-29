@@ -20,15 +20,16 @@ import * as path from 'node:path';
 
 import { RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { AwsIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Effect, IRole, ManagedPolicy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import { BlockPublicAccess, Bucket, BucketEncryption, IBucket } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 
 import { createCdkId } from '../core/utils';
 import { BaseProps } from '../schema';
+import { Roles } from '../core/iam/roles';
 
 /**
  * Properties for UserInterface Construct.
@@ -48,11 +49,11 @@ type UserInterfaceProps = CustomUserInterfaceProps & StackProps;
  */
 export class UserInterfaceStack extends Stack {
     /**
-   * @param {Construct} scope - The parent or owner of the construct.
-   * @param {string} id - The unique identifier for the construct within its scope.
-   * @param {UserInterfaceProps} props - The properties of the construct.
-   */
-    constructor (scope: Construct, id: string, props: UserInterfaceProps) {
+    * @param {Construct} scope - The parent or owner of the construct.
+    * @param {string} id - The unique identifier for the construct within its scope.
+    * @param {UserInterfaceProps} props - The properties of the construct.
+    */
+    constructor(scope: Construct, id: string, props: UserInterfaceProps) {
         super(scope, id, props);
 
         const { architecture, config, restApiId, rootResourceId } = props;
@@ -73,12 +74,9 @@ export class UserInterfaceStack extends Stack {
 
         // REST APIGW config
         // S3 role
-        const s3ReaderRole = new Role(this, `${Stack.of(this).stackName}-s3-reader-role`, {
-            assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
-            roleName: `${Stack.of(this).stackName}-s3-reader-role`,
-            managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AmazonS3ReadOnlyAccess')],
-            description: 'Allows API gateway to proxy static website assets',
-        });
+        const s3ReaderRole: IRole = config.roles?.[Roles.S3_READER_ROLE] ?
+            Role.fromRoleName(this, Roles.S3_READER_ROLE, config.roles[Roles.S3_READER_ROLE]) :
+            this.createS3ReadOnlyRole();
 
         // Configure static site resources
         const proxyMethodResponse = [
@@ -204,7 +202,7 @@ export class UserInterfaceStack extends Stack {
                         ].join(' && '),
                     ],
                     local: {
-                        tryBundle (outputDir: string) {
+                        tryBundle(outputDir: string) {
                             try {
                                 const options: ExecSyncOptionsWithBufferEncoding = {
                                     stdio: 'inherit',
@@ -227,10 +225,78 @@ export class UserInterfaceStack extends Stack {
         } else {
             webappAssets = Source.asset(config.webAppAssetsPath);
         }
+
+        const deploymentRoleName = createCdkId(['LisaRestApiUri', Roles.UI_DEPLOYMENT_ROLE]);
+        const deploymentRole = config.roles?.[Roles.UI_DEPLOYMENT_ROLE] ?
+            Role.fromRoleName(this, deploymentRoleName, config.roles[Roles.UI_DEPLOYMENT_ROLE]) :
+            this.createBucketDeploymentRole(deploymentRoleName, websiteBucket);
+
         new BucketDeployment(this, 'AwsExportsDepolyment', {
             sources: [webappAssets, appEnvSource],
             retainOnDelete: false,
             destinationBucket: websiteBucket,
+            role: deploymentRole
+        });
+    }
+
+    /**
+     * Create S3 read only role
+     * @returns {IRole} S3 read only role
+     */
+    createS3ReadOnlyRole(): IRole {
+        const roleName = `${Stack.of(this).stackName}-s3-reader-role`;
+        return new Role(this, roleName, {
+            assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
+            roleName,
+            managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AmazonS3ReadOnlyAccess')],
+            description: 'Allows API gateway to proxy static website assets',
+        });
+    }
+    /**
+     * Create bucket deployment role
+     * @param roleName - role name
+     * @param destinationBucket - bucket
+     * @returns new role
+     */
+    createBucketDeploymentRole(roleName: string, destinationBucket: IBucket) {
+        return new Role(this, roleName, {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+            roleName,
+            description: `S3 Deployment Role used by LISA transfer assets`,
+            managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')],
+            inlinePolicies: {
+                deployerPermissions: new PolicyDocument({
+                    statements: [
+                        // Source files
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: [
+                                "s3:GetBucket*",
+                                "s3:GetObject*",
+                                "s3:List*"
+                            ],
+                            resources: ['arn:aws:s3:::cdk*']
+                        }),
+                        // Destination
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: [
+                                "s3:Abort*",
+                                "s3:DeleteObject*",
+                                "s3:GetBucket*",
+                                "s3:GetObject*",
+                                "s3:List*",
+                                "s3:PutObject",
+                                "s3:PutObjectLegalHold",
+                                "s3:PutObjectRetention",
+                                "s3:PutObjectTagging",
+                                "s3:PutObjectVersionTagging"
+                            ],
+                            resources: [destinationBucket.bucketArn, `${destinationBucket.bucketArn}/*`]
+                        }),
+                    ]
+                }),
+            }
         });
     }
 }
@@ -240,7 +306,7 @@ export class UserInterfaceStack extends Stack {
  * @param {string} sourceDir - Source directory to copy from.
  * @param {string} targetDir - Target directory to copy to.
  */
-function copyDirRecursive (sourceDir: string, targetDir: string): void {
+function copyDirRecursive(sourceDir: string, targetDir: string): void {
     if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir);
     }

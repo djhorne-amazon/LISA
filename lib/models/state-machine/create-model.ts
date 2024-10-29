@@ -47,7 +47,8 @@ type CreateModelStateMachineProps = BaseProps & {
     vpc?: Vpc,
     securityGroups?: ISecurityGroup[];
     restApiContainerEndpointPs: IStringParameter;
-    managementKeyName: string
+    managementKeyName: string;
+    executionRole?: IRole;
 };
 
 /**
@@ -59,7 +60,7 @@ export class CreateModelStateMachine extends Construct {
     constructor (scope: Construct, id: string, props: CreateModelStateMachineProps) {
         super(scope, id);
 
-        const {config, modelTable, lambdaLayers, dockerImageBuilderFnArn, ecsModelDeployerFnArn, ecsModelImageRepository, role, vpc, securityGroups, restApiContainerEndpointPs, managementKeyName} = props;
+        const {config, modelTable, lambdaLayers, dockerImageBuilderFnArn, ecsModelDeployerFnArn, ecsModelImageRepository, role, vpc, securityGroups, restApiContainerEndpointPs, managementKeyName, executionRole} = props;
 
         const environment = {
             DOCKER_IMAGE_BUILDER_FN_ARN: dockerImageBuilderFnArn,
@@ -291,6 +292,7 @@ export class CreateModelStateMachine extends Construct {
 
         const stateMachine = new StateMachine(this, 'CreateModelSM', {
             definitionBody: DefinitionBody.fromChainable(setModelToCreating),
+            role: executionRole
         });
 
         this.stateMachineArn = stateMachine.stateMachineArn;

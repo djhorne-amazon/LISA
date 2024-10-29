@@ -16,8 +16,8 @@
 
 import { IAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import { IRole } from 'aws-cdk-lib/aws-iam';
 import { ISecurityGroup } from 'aws-cdk-lib/aws-ec2';
-import { Role } from 'aws-cdk-lib/aws-iam';
 import { LayerVersion, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
@@ -26,6 +26,7 @@ import { PythonLambdaFunction, registerAPIEndpoint } from '../../api-base/utils'
 import { BaseProps } from '../../schema';
 import { createLambdaRole } from '../../core/utils';
 import { Vpc } from '../../networking/vpc';
+import { Roles } from '../../core/iam/roles';
 
 /**
  * Properties for SessionApi Construct.
@@ -146,7 +147,7 @@ export class SessionApi extends Construct {
             },
         ];
 
-        const lambdaRole: Role = createLambdaRole(this, config.deploymentName, 'SessionApi', sessionTable.tableArn);
+        const lambdaRole: IRole = createLambdaRole(this, config.deploymentName, 'SessionApi', sessionTable.tableArn, config.roles?.[Roles.LAMBDA_EXECUTION_ROLE]);
 
         apis.forEach((f) => {
             const lambdaFunction = registerAPIEndpoint(

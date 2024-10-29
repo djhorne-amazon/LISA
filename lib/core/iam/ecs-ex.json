@@ -1,0 +1,27 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer"
+            ],
+            "Resource": "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/cdk-*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": "ecr:GetAuthorizationToken",
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*",
+            "Effect": "Allow"
+        }
+    ]
+}
