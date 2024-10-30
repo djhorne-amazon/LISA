@@ -120,7 +120,7 @@ export function createCdkId (idParts: string[], maxLength: number = 64, truncati
     const length = cdkId.length;
 
     if (length > maxLength) {
-        console.log(`${cdkId} is too long (>${maxLength}). Truncating...`)
+        console.log(`${cdkId} is too long (>${maxLength}). Truncating...`);
         truncationIdx = typeof truncationIdx === 'undefined' ? idParts.length - 1 : truncationIdx;
         idParts[truncationIdx] = idParts[truncationIdx].slice(0, maxLength - length);
         cdkId = idParts.join('-');

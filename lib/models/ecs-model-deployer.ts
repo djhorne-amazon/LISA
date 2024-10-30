@@ -16,7 +16,7 @@
 
 import { Construct } from 'constructs';
 import { DockerImageCode, DockerImageFunction, IFunction } from 'aws-cdk-lib/aws-lambda';
-import { Role, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement, IRole } from 'aws-cdk-lib/aws-iam';
+import { Role, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Stack, Duration, Size } from 'aws-cdk-lib';
 
 import { createCdkId } from '../core/utils';
@@ -37,10 +37,10 @@ export class ECSModelDeployer extends Construct {
         const stackName = Stack.of(scope).stackName;
         const {config} = props;
 
-        const roleName = createCdkId([stackName, 'ecs-model-deployer-role'])
+        const roleName = createCdkId([stackName, 'ecs-model-deployer-role']);
         const role = config.roles?.[Roles.ECS_MODEL_DEPLOYER_ROLE] ?
-                Role.fromRoleName(this, roleName, config.roles[Roles.ECS_MODEL_DEPLOYER_ROLE]) :
-                this.createEcsModelDeployerRole(stackName, roleName);
+            Role.fromRoleName(this, roleName, config.roles[Roles.ECS_MODEL_DEPLOYER_ROLE]) :
+            this.createEcsModelDeployerRole(stackName, roleName);
 
         const stripped_config = {
             'appName': props.config.appName,
@@ -78,7 +78,7 @@ export class ECSModelDeployer extends Construct {
      * @param stackName - deployment stack name
      * @returns new role
      */
-    private createEcsModelDeployerRole(stackName: string, roleName: string) {
+    private createEcsModelDeployerRole (stackName: string, roleName: string) {
         const role = new Role(this, roleName, {
             assumedBy: new ServicePrincipal('lambda.amazonaws.com')
         });

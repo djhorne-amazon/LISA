@@ -16,14 +16,14 @@
 
 // LISA-serve Stack.
 import { Stack, StackProps } from 'aws-cdk-lib';
-import { IManagedPolicy, IPolicy, IRole, ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { IManagedPolicy, IRole, ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 import { createCdkId, getIamPolicyStatements } from './core/utils';
 import { BaseProps, Config } from './schema';
-import { Roles } from './core/iam/roles';
+import { Roles, of } from './core/iam/roles';
 
 /**
  * Properties for the LisaServeIAMStack Construct.
@@ -47,7 +47,7 @@ type RoleInfo = {
 type ECSRole = {
     id: string;
     type: ECSTaskType;
-}
+};
 
 /**
  * ECS Task types
@@ -68,7 +68,7 @@ export class LisaServeIAMStack extends Stack {
      * @param {string} id - The unique identifier for the construct within its scope.
      * @param {LisaIAMStackProps} props - Properties for the Stack.
      */
-    constructor(scope: Construct, id: string, props: LisaIAMStackProps) {
+    constructor (scope: Construct, id: string, props: LisaIAMStackProps) {
         super(scope, id, props);
         const { config } = props;
         // Add suppression for IAM4 (use of managed policy)
@@ -107,7 +107,7 @@ export class LisaServeIAMStack extends Stack {
         ];
 
         ecsRoles.forEach((role) => {
-            const taskRoleOverride = Roles.of(`ECS_${role.id}_${role.type}_ROLE`.toUpperCase());
+            const taskRoleOverride = of(`ECS_${role.id}_${role.type}_ROLE`.toUpperCase());
             const taskRoleId = createCdkId([role.id, 'Role']);
             const taskRoleName = createCdkId([config.deploymentName, role.id, 'Role']);
             const taskRole = config.roles?.[taskRoleOverride] ?
@@ -120,7 +120,7 @@ export class LisaServeIAMStack extends Stack {
                 description: `Role ARN for LISA ${role.type} ${role.id} ECS Task`,
             });
 
-            const exeuctionRoleOverride = Roles.of(`ECS_${role.id}_${role.type}_EX_ROLE`.toUpperCase());
+            const exeuctionRoleOverride = of(`ECS_${role.id}_${role.type}_EX_ROLE`.toUpperCase());
             const executionRoleId = createCdkId([role.id, 'ExRole']);
             const executionRoleName = createCdkId([config.deploymentName, role.id, 'ExRole']);
             const executionRole = config.roles?.[exeuctionRoleOverride] ?
@@ -135,7 +135,7 @@ export class LisaServeIAMStack extends Stack {
         });
     }
 
-    private createTaskPolicy(deploymentName: string, deploymentPrefix?: string): IManagedPolicy {
+    private createTaskPolicy (deploymentName: string, deploymentPrefix?: string): IManagedPolicy {
         const statements = getIamPolicyStatements('ecs');
         const taskPolicyId = createCdkId([deploymentName, 'ECSPolicy']);
         const taskPolicy = new ManagedPolicy(this, taskPolicyId, {
@@ -151,7 +151,7 @@ export class LisaServeIAMStack extends Stack {
 
         return taskPolicy;
     }
-    private createExecutionPolicy(deploymentName: string, deploymentPrefix?: string): IManagedPolicy {
+    private createExecutionPolicy (deploymentName: string, deploymentPrefix?: string): IManagedPolicy {
         const statements = getIamPolicyStatements('ecs-ex');
         const exeuctionPolicyId = createCdkId([deploymentName, 'ECSEXPolicy']);
         const executionPolicy = new ManagedPolicy(this, exeuctionPolicyId, {
@@ -168,7 +168,7 @@ export class LisaServeIAMStack extends Stack {
         return executionPolicy;
     }
 
-    private createRagLambdaRole(config: Config): IRole {
+    private createRagLambdaRole (config: Config): IRole {
         const ragLambdaRoleId = createCdkId([config.deploymentName, Roles.RAG_LAMBDA_EXECUTION_ROLE]);
         const ragLambdaRole = config.roles?.[Roles.RAG_LAMBDA_EXECUTION_ROLE] ?
             Role.fromRoleName(this, ragLambdaRoleId, config.roles[Roles.RAG_LAMBDA_EXECUTION_ROLE]) :
@@ -183,7 +183,7 @@ export class LisaServeIAMStack extends Stack {
         return ragLambdaRole;
     }
 
-    private createRagLambdaExecutionRole(deploymentName: string, ragLambdaRoleId: string) {
+    private createRagLambdaExecutionRole (deploymentName: string, ragLambdaRoleId: string) {
         const lambdaPolicyStatements = getIamPolicyStatements('rag');
         const lambdaRagPolicy = new ManagedPolicy(this, createCdkId([deploymentName, 'RAGPolicy']), {
             managedPolicyName: createCdkId([deploymentName, 'RAGPolicy']),
@@ -198,7 +198,7 @@ export class LisaServeIAMStack extends Stack {
         });
     }
 
-    private createAutoScalingGroupRole(deploymentName: string): IRole {
+    private createAutoScalingGroupRole (deploymentName: string): IRole {
         const roleName = createCdkId([deploymentName, Roles.ASG_ROLE]);
         const role = new Role(this, roleName, {
             roleName,
@@ -208,7 +208,7 @@ export class LisaServeIAMStack extends Stack {
         return role;
     }
 
-    private createEcsTaskRole(role: ECSRole, roleId: string, roleName: string, taskPolicy: IManagedPolicy): IRole {
+    private createEcsTaskRole (role: ECSRole, roleId: string, roleName: string, taskPolicy: IManagedPolicy): IRole {
         return new Role(this, roleId, {
             assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
             roleName,
@@ -217,7 +217,7 @@ export class LisaServeIAMStack extends Stack {
         });
     }
 
-    private createEcsExecutionRole(role: ECSRole, roleId: string, roleName: string, taskPolicy: IManagedPolicy): IRole {
+    private createEcsExecutionRole (role: ECSRole, roleId: string, roleName: string, taskPolicy: IManagedPolicy): IRole {
         return new Role(this, roleId, {
             assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
             roleName,

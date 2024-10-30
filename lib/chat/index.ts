@@ -37,7 +37,7 @@ type LisaChatStackProps = CustomLisaChatStackProps & StackProps;
  * LisaChat Application stack.
  */
 export class LisaChatApplicationStack extends Stack {
-   /**
+    /**
    * @param {Construct} scope - The parent or owner of the construct.
    * @param {string} id - The unique identifier for the construct within its scope.
    * @param {LisaChatStackProps} props - Properties for the Stack.

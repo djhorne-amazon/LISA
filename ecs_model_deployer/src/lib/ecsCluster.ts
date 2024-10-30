@@ -187,7 +187,7 @@ export class ECSCluster extends Construct {
             environment.SSL_CERT_FILE = config.certificateAuthorityBundle;
         }
 
-        const stackName = config.deploymentName
+        const stackName = config.deploymentName;
         const roleId = ecsConfig.identifier;
 
         const executionRoleId = createCdkId([config.deploymentName, roleId, 'EX']);
@@ -352,7 +352,7 @@ export class ECSCluster extends Construct {
         this.executionRole = executionRole;
     }
 
-    createTaskRole(stackName: string, deploymentPrefix: string | undefined, roleId: string): IRole {
+    createTaskRole (stackName: string, deploymentPrefix: string | undefined, roleId: string): IRole {
         const taskPolicyId = createCdkId([stackName, 'ECSPolicy']);
         const taskPolicyStringParam = StringParameter.fromStringParameterName(this, 'taskPolicyStringParam',
             `${deploymentPrefix}/policies/${taskPolicyId}`
@@ -376,7 +376,7 @@ export class ECSCluster extends Construct {
         return role;
     }
 
-    createExecutionRole(stackName: string, deploymentPrefix: string | undefined, roleId: string): IRole {
+    createExecutionRole (stackName: string, deploymentPrefix: string | undefined, roleId: string): IRole {
         const taskPolicyId = createCdkId([stackName, 'EcsExPolicy']);
         const taskPolicyStringParam = StringParameter.fromStringParameterName(this, 'taskPolicyStringParam',
             `${deploymentPrefix}/policies/${taskPolicyId}`

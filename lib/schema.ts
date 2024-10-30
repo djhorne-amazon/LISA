@@ -525,7 +525,7 @@ const AuthConfigSchema = z.object({
 /**
  * Configuration schema for Role overrides. This is a simple key value map with additional constraints.
  */
-const RoleOverrides = z.record(z.string().endsWith('Role'), z.string().max(64))
+const RoleOverrides = z.record(z.string().endsWith('Role'), z.string().max(64));
 
 /**
  * Configuration schema for RDS Instances needed for LiteLLM scaling or PGVector RAG operations.

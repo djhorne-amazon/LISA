@@ -25,7 +25,6 @@ import { dump as yamlDump } from 'js-yaml';
 import { ECSCluster } from './ecsCluster';
 import { BaseProps, Ec2Metadata, EcsSourceType } from '../schema';
 import { Vpc } from '../networking/vpc';
-import { Roles } from '../core/iam/roles';
 
 // This is the amount of memory to buffer (or subtract off) from the total instance memory, if we don't include this,
 // the container can have a hard time finding available RAM resources to start and the tasks will fail deployment

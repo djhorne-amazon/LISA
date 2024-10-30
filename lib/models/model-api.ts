@@ -70,7 +70,7 @@ type ModelsApiProps = BaseProps & {
  * API for managing Models
  */
 export class ModelsApi extends Construct {
-    constructor(scope: Construct, id: string, props: ModelsApiProps) {
+    constructor (scope: Construct, id: string, props: ModelsApiProps) {
         super(scope, id);
 
         const { authorizer, config, lisaServeEndpointUrlPs, restApiId, rootResourceId, securityGroups, vpc } = props;
@@ -327,7 +327,7 @@ export class ModelsApi extends Construct {
      * @param managementKeyName - Name of the management key secret
      * @returns The created role
      */
-    createStateMachineLambdaRole(modelTableArn: string, dockerImageBuilderFnArn: string, ecsModelDeployerFnArn: string, lisaServeEndpointUrlParamArn: string, managementKeyName: string): IRole {
+    createStateMachineLambdaRole (modelTableArn: string, dockerImageBuilderFnArn: string, ecsModelDeployerFnArn: string, lisaServeEndpointUrlParamArn: string, managementKeyName: string): IRole {
         const role = new Role(this, Roles.MODEL_SFN_LAMBDA_ROLE, {
             assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
             managedPolicies: [
@@ -419,7 +419,7 @@ export class ModelsApi extends Construct {
         return role;
     }
 
-    createStateMachineExecutionRole(): IRole {
+    createStateMachineExecutionRole (): IRole {
         return new Role(this, Roles.MODEL_SFN_ROLE, {
             assumedBy: new ServicePrincipal('states.amazonaws.com'),
             managedPolicies: [
