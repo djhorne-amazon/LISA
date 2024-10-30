@@ -1,0 +1,32 @@
+env: dev
+
+dev:
+  roles:
+    #RagRole / LisaServeIam Roles
+    ASGRole: TestAsgRole
+    RagLambdaExecutionRole: TestRagRole
+    RestApiRole: TestRestRole
+    ECSRestApiRole: TestEcsRestApiRole
+    ECSRestApiExRole: TestEcsRestApiRole
+
+    #ImageBuilderRoles
+    DockerImageBuilderEC2Role: TestImageBuilderRole #ImageBuilder
+    DockerImageBuilderRole: TestImageBuilderRole #ImageBuilder
+    DockerImageBuilderDeploymentRole: TestImageBuilderRole #ImageBuilder
+
+    # ModelDeployerRole
+    ECSModelDeployerRole: TestECSModelDeployerRole
+    ECSModelTaskRole: TestECSModelDeployerRole
+
+    #ModelAPIRole
+    ModelsSfnLambdaRole: TestModelApiRole
+    ModelSfnRole: TestModelApiRole
+    ModelApiRole: TestModelApiRole
+
+    #ChatUIRoles
+    LambdaExecutionRole: TestLambdaExecutionRole #SessionAPI
+    S3ReaderRole: TestReaderRole
+    UIDeploymentRole: TestDeployer
+
+    #RestAPIRoles
+    RestApiAuthorizerRole: TestAuthorizerRole

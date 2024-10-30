@@ -110,8 +110,6 @@ export class LisaServeIAMStack extends Stack {
             const taskRoleOverride = Roles.of(`ECS_${role.id}_${role.type}_ROLE`.toUpperCase());
             const taskRoleId = createCdkId([role.id, 'Role']);
             const taskRoleName = createCdkId([config.deploymentName, role.id, 'Role']);
-            console.error(`Looking up ${taskRoleOverride} = ${config.roles?.[taskRoleOverride]}`)
-            console.error(`${JSON.stringify(config.roles)}`)
             const taskRole = config.roles?.[taskRoleOverride] ?
                 Role.fromRoleName(this, taskRoleId, config.roles[taskRoleOverride]) :
                 this.createEcsTaskRole(role, taskRoleId, taskRoleName, taskPolicy);
@@ -125,7 +123,6 @@ export class LisaServeIAMStack extends Stack {
             const exeuctionRoleOverride = Roles.of(`ECS_${role.id}_${role.type}_EX_ROLE`.toUpperCase());
             const executionRoleId = createCdkId([role.id, 'ExRole']);
             const executionRoleName = createCdkId([config.deploymentName, role.id, 'ExRole']);
-            console.error(`Looking up ${exeuctionRoleOverride} = ${config.roles?.[exeuctionRoleOverride]}`)
             const executionRole = config.roles?.[exeuctionRoleOverride] ?
                 Role.fromRoleName(this, executionRoleId, config.roles[exeuctionRoleOverride]) :
                 this.createEcsExecutionRole(role, executionRoleId, executionRoleName, executionPolicy);
