@@ -454,8 +454,6 @@ const EcsBaseConfigSchema = z.object({
     instanceType: z.enum(VALID_INSTANCE_KEYS),
     internetFacing: z.boolean().default(false),
     loadBalancerConfig: LoadBalancerConfigSchema,
-    // taskRole: z.string().optional(),
-    // executionRole: z.string().optional()
 });
 
 /**

@@ -398,27 +398,5 @@ export class ECSCluster extends Construct {
         });
 
         return role;
-        // {
-        //     "Action": [
-        //         "ecr:BatchCheckLayerAvailability",
-        //         "ecr:BatchGetImage",
-        //         "ecr:GetDownloadUrlForLayer"
-        //     ],
-        //     "Resource": "arn:aws:ecr:us-west-2:418295723631:repository/cdk-hnb659fds-container-assets-418295723631-us-west-2",
-        //     "Effect": "Allow"
-        // },
-        // {
-        //     "Action": "ecr:GetAuthorizationToken",
-        //     "Resource": "*",
-        //     "Effect": "Allow"
-        // },
-        // {
-        //     "Action": [
-        //         "logs:CreateLogStream",
-        //         "logs:PutLogEvents"
-        //     ],
-        //     "Resource": "arn:aws:logs:us-west-2:418295723631:log-group:app-lisa-serve-dev-RestApiECSClusterRESTEc2TaskDefinitionRESTContainerLogGroup01AB5F5D-xFXpvCqfSXub:*",
-        //     "Effect": "Allow"
-        // }
     }
 }
