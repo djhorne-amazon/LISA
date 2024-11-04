@@ -21,7 +21,8 @@ import ConfigParser from '../mocks/ConfigParser';
 const stackRolesOverrides: Record<string, number> = {
     'LisaApiBase': 1,
     'LisaServe': 3,
-    'LisaUI': 1
+    'LisaUI': 1,
+    'LisaDocs': 2,
 };
 
 const stackRoles: Record<string, number> = {
@@ -33,7 +34,7 @@ const stackRoles: Record<string, number> = {
     'LisaCore': 0,
     'LisaApiDeployment': 0,
     'LisaIAM': 4,
-    'LisaDocs': 0,
+    'LisaDocs': 4,
 };
 
 describe('Verify role overrides', () => {

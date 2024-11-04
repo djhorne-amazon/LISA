@@ -25,6 +25,7 @@ import * as yaml from 'js-yaml';
 import { createCdkId } from '../../../lib/core/utils';
 import { LisaNetworkingStack } from '../../../lib/networking/index';
 import { BaseProps, Config, ConfigFile, ConfigSchema } from '../../../lib/schema';
+import ConfigParser from '../mocks/ConfigParser';
 
 type TestConfig = [string, number, number, number, number];
 
@@ -47,27 +48,7 @@ describe.each<TestConfig>(regions)(
 
         beforeAll(() => {
             app = new App();
-
-            // Read configuration file
-            const configFilePath = path.join(__dirname, '../mocks/config.yaml');
-            const configFile = yaml.load(fs.readFileSync(configFilePath, 'utf8')) as ConfigFile;
-            const configEnv = configFile.env || 'dev';
-            const configData = configFile[configEnv];
-            if (!configData) {
-                throw new Error(`Configuration for environment "${configEnv}" not found.`);
-            }
-            // Validate and parse configuration
-            try {
-                config = ConfigSchema.parse(configData);
-            } catch (error) {
-                if (error instanceof Error) {
-                    console.error('Error parsing the configuration:', error.message);
-                } else {
-                    console.error('An unexpected error occurred:', error);
-                }
-                process.exit(1);
-            }
-
+            config = ConfigParser.parseConfig();
             baseStackProps = {
                 env: {
                     account: '012345678901',

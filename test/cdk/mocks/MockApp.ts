@@ -25,6 +25,7 @@ import { LisaServeApplicationStack } from '../../../lib/serve/index';
 import { UserInterfaceStack } from '../../../lib/user-interface/index';
 import ConfigParser from './ConfigParser';
 import { Config } from '../../../lib/schema';
+import { LisaDocsStack } from '../../../lib/docs';
 
 export default class MockApp {
 
@@ -84,6 +85,11 @@ export default class MockApp {
             rootResourceId: apiBaseStack.rootResourceId,
         });
 
+        const docStack = new LisaDocsStack(app, 'LisaDocs',{
+            ...baseStackProps,
+            stackName: 'LisaDocs'
+        })
+
         const stacks = [
             networkingStack,
             iamStack,
@@ -92,7 +98,8 @@ export default class MockApp {
             chatStack,
             coreStack,
             serveStack,
-            uiStack
+            uiStack,
+            docStack
         ];
 
         return { app, stacks };

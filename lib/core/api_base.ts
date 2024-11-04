@@ -27,7 +27,7 @@ import { Role } from 'aws-cdk-lib/aws-iam';
 type LisaApiBaseStackProps = {
     vpc: Vpc;
 } & BaseProps &
-  StackProps;
+    StackProps;
 
 export class LisaApiBaseStack extends Stack {
     public readonly restApi: RestApi;
@@ -36,7 +36,7 @@ export class LisaApiBaseStack extends Stack {
     public readonly rootResourceId: string;
     public readonly restApiUrl: string;
 
-    constructor (scope: Construct, id: string, props: LisaApiBaseStackProps) {
+    constructor(scope: Construct, id: string, props: LisaApiBaseStackProps) {
         super(scope, id, props);
 
         const { config, vpc } = props;
@@ -60,12 +60,14 @@ export class LisaApiBaseStack extends Stack {
             binaryMediaTypes: ['font/*', 'image/*'],
         });
 
-        const role = config.roles?.[Roles.REST_API_AUTHORIZER_ROLE] ? Role.fromRoleName(this, 'AuthorizerRole', config.roles[Roles.REST_API_AUTHORIZER_ROLE]) : undefined;
         // Create the authorizer Lambda for APIGW
         const authorizer = new CustomAuthorizer(this, 'LisaApiAuthorizer', {
             config: config,
-            role,
             vpc,
+            ...(config.roles?.[Roles.REST_API_AUTHORIZER_ROLE] &&
+            {
+                role: Role.fromRoleName(this, 'AuthorizerRole', config.roles[Roles.REST_API_AUTHORIZER_ROLE])
+            })
         });
 
         this.restApi = restApi;

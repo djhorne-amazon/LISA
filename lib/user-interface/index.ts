@@ -226,16 +226,14 @@ export class UserInterfaceStack extends Stack {
             webappAssets = Source.asset(config.webAppAssetsPath);
         }
 
-        const deploymentRoleName = createCdkId(['LisaRestApiUri', Roles.UI_DEPLOYMENT_ROLE]);
-        const deploymentRole = config.roles?.[Roles.UI_DEPLOYMENT_ROLE] ?
-            Role.fromRoleName(this, deploymentRoleName, config.roles[Roles.UI_DEPLOYMENT_ROLE]) :
-            this.createBucketDeploymentRole(deploymentRoleName, websiteBucket);
-
         new BucketDeployment(this, 'AwsExportsDepolyment', {
             sources: [webappAssets, appEnvSource],
             retainOnDelete: false,
             destinationBucket: websiteBucket,
-            role: deploymentRole
+            ...(config.roles?.[Roles.UI_DEPLOYMENT_ROLE] &&
+                {
+                    role: Role.fromRoleName(this, createCdkId(['LisaRestApiUri', Roles.UI_DEPLOYMENT_ROLE]), config.roles[Roles.UI_DEPLOYMENT_ROLE])
+                })
         });
     }
 
@@ -250,53 +248,6 @@ export class UserInterfaceStack extends Stack {
             roleName,
             managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AmazonS3ReadOnlyAccess')],
             description: 'Allows API gateway to proxy static website assets',
-        });
-    }
-    /**
-     * Create bucket deployment role
-     * @param roleName - role name
-     * @param destinationBucket - bucket
-     * @returns new role
-     */
-    createBucketDeploymentRole (roleName: string, destinationBucket: IBucket) {
-        return new Role(this, roleName, {
-            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-            roleName,
-            description: 'S3 Deployment Role used by LISA transfer assets',
-            managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')],
-            inlinePolicies: {
-                deployerPermissions: new PolicyDocument({
-                    statements: [
-                        // Source files
-                        new PolicyStatement({
-                            effect: Effect.ALLOW,
-                            actions: [
-                                's3:GetBucket*',
-                                's3:GetObject*',
-                                's3:List*'
-                            ],
-                            resources: ['arn:aws:s3:::cdk*']
-                        }),
-                        // Destination
-                        new PolicyStatement({
-                            effect: Effect.ALLOW,
-                            actions: [
-                                's3:Abort*',
-                                's3:DeleteObject*',
-                                's3:GetBucket*',
-                                's3:GetObject*',
-                                's3:List*',
-                                's3:PutObject',
-                                's3:PutObjectLegalHold',
-                                's3:PutObjectRetention',
-                                's3:PutObjectTagging',
-                                's3:PutObjectVersionTagging'
-                            ],
-                            resources: [destinationBucket.bucketArn, `${destinationBucket.bucketArn}/*`]
-                        }),
-                    ]
-                }),
-            }
         });
     }
 }

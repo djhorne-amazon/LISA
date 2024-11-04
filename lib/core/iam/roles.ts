@@ -22,6 +22,8 @@ export enum Roles {
     DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE = 'DockerImageBuilderDeploymentRole',
     DOCKER_IMAGE_BUILDER_EC2_ROLE = 'DockerImageBuilderEC2Role',
     DOCKER_IMAGE_BUILDER_ROLE = 'DockerImageBuilderRole',
+    DOCS_ROLE = 'DocsRole',
+    DOCS_DEPLOYER_ROLE = 'DocsDeployerRole',
     ECS_MODEL_DEPLOYER_ROLE = 'ECSModelDeployerRole',
     ECS_MODEL_TASK_ROLE = 'ECSModelTaskRole',
     ECS_MODEL_EXECUTION_ROLE = 'ECSModelExecutionRole',

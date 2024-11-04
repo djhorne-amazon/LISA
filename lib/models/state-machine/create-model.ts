@@ -57,10 +57,10 @@ type CreateModelStateMachineProps = BaseProps & {
 export class CreateModelStateMachine extends Construct {
     readonly stateMachineArn: string;
 
-    constructor (scope: Construct, id: string, props: CreateModelStateMachineProps) {
+    constructor(scope: Construct, id: string, props: CreateModelStateMachineProps) {
         super(scope, id);
 
-        const {config, modelTable, lambdaLayers, dockerImageBuilderFnArn, ecsModelDeployerFnArn, ecsModelImageRepository, role, vpc, securityGroups, restApiContainerEndpointPs, managementKeyName, executionRole} = props;
+        const { config, modelTable, lambdaLayers, dockerImageBuilderFnArn, ecsModelDeployerFnArn, ecsModelImageRepository, role, vpc, securityGroups, restApiContainerEndpointPs, managementKeyName, executionRole } = props;
 
         const environment = {
             DOCKER_IMAGE_BUILDER_FN_ARN: dockerImageBuilderFnArn,
@@ -106,7 +106,7 @@ export class CreateModelStateMachine extends Construct {
                     queueName: 'StartCopyDockerImageDLQ',
                     enforceSSL: true,
                 }),
-                runtime:  Runtime.PYTHON_3_10,
+                runtime: Runtime.PYTHON_3_10,
                 handler: 'models.state_machine.create_model.handle_start_copy_docker_image',
                 code: Code.fromAsset('./lambda'),
                 timeout: LAMBDA_TIMEOUT,
@@ -292,7 +292,10 @@ export class CreateModelStateMachine extends Construct {
 
         const stateMachine = new StateMachine(this, 'CreateModelSM', {
             definitionBody: DefinitionBody.fromChainable(setModelToCreating),
-            role: executionRole
+            ...(executionRole &&
+            {
+                role: executionRole
+            })
         });
 
         this.stateMachineArn = stateMachine.stateMachineArn;

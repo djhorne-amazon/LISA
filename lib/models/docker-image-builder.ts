@@ -37,7 +37,7 @@ export type DockerImageBuilderProps = BaseProps & {
 export class DockerImageBuilder extends Construct {
     readonly dockerImageBuilderFn: Function;
 
-    constructor (scope: Construct, id: string, props: DockerImageBuilderProps) {
+    constructor(scope: Construct, id: string, props: DockerImageBuilderProps) {
         super(scope, id);
 
         const stackName = Stack.of(scope).stackName;
@@ -47,15 +47,13 @@ export class DockerImageBuilder extends Construct {
         const sources = [Source.asset('./lib/serve/ecs-model/')];
         const ec2DockerBucket = new Bucket(this, createCdkId([stackName, 'docker-image-builder-ec2-bucket']));
 
-        const dockerDeploymentRoleName = createCdkId([stackName, Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE]);
-        const dockerDeploymentRole = config.roles?.[Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE] ?
-            Role.fromRoleName(this, dockerDeploymentRoleName, config.roles[Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE]) :
-            this.createBucketDeploymentRole(dockerDeploymentRoleName, ec2DockerBucket);
-
         new BucketDeployment(this, createCdkId([stackName, 'docker-image-builder-ec2-dplmnt']), {
             sources,
             destinationBucket: ec2DockerBucket,
-            role: dockerDeploymentRole
+            ...(config.roles?.[Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE] &&
+            {
+                role: Role.fromRoleName(this, createCdkId([stackName, Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE]), config.roles[Roles.DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE])
+            })
         });
 
         const ec2InstanceRoleName = createCdkId([stackName, 'docker-image-builder-ec2-role']);
@@ -108,7 +106,7 @@ export class DockerImageBuilder extends Construct {
      * @param dockerBucketArn - bucket arn containing docker images
      * @returns new role
      */
-    createEc2InstanceRole (stackName: string, roleName: string, dockerBucketArn: string): IRole {
+    createEc2InstanceRole(stackName: string, roleName: string, dockerBucketArn: string): IRole {
         const role = new Role(this, roleName, {
             roleName,
             assumedBy: new ServicePrincipal('ec2.amazonaws.com')
@@ -154,7 +152,7 @@ export class DockerImageBuilder extends Construct {
      * @param ec2InstanceRoleArn - EC2 Instance role arn
      * @returns new role
      */
-    createEc2BuilderRole (stackName: string, roleName: string, ec2InstanceRoleArn: string): IRole {
+    createEc2BuilderRole(stackName: string, roleName: string, ec2InstanceRoleArn: string): IRole {
         const role = new Role(this, roleName, {
             roleName,
             assumedBy: new ServicePrincipal('lambda.amazonaws.com')
@@ -185,52 +183,4 @@ export class DockerImageBuilder extends Construct {
         return role;
     }
 
-    /**
-     * Create bucket deployment role
-     * @param roleName - role name
-     * @param destinationBucket - bucket
-     * @returns new role
-     */
-    createBucketDeploymentRole (roleName: string, destinationBucket: IBucket) {
-        return new Role(this, roleName, {
-            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-            roleName,
-            description: 'S3 Deployment Role used by LISA transfer assets',
-            managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')],
-            inlinePolicies: {
-                deployerPermissions: new PolicyDocument({
-                    statements: [
-                        // Source files
-                        new PolicyStatement({
-                            effect: Effect.ALLOW,
-                            actions: [
-                                's3:GetBucket*',
-                                's3:GetObject*',
-                                's3:List*'
-                            ],
-                            resources: ['arn:aws:s3:::cdk*']
-                        }),
-                        // Destination
-                        new PolicyStatement({
-                            effect: Effect.ALLOW,
-                            actions: [
-                                's3:Abort*',
-                                's3:DeleteObject*',
-                                's3:GetBucket*',
-                                's3:GetObject*',
-                                's3:List*',
-                                's3:PutObject',
-                                's3:PutObjectLegalHold',
-                                's3:PutObjectRetention',
-                                's3:PutObjectTagging',
-                                's3:PutObjectVersionTagging'
-                            ],
-                            resources: [destinationBucket.bucketArn, `${destinationBucket.bucketArn}/*`]
-                        }),
-                    ]
-                }),
-            }
-        });
-
-    }
 }

@@ -47,7 +47,7 @@ type UpdateModelStateMachineProps = BaseProps & {
 export class UpdateModelStateMachine extends Construct {
     readonly stateMachineArn: string;
 
-    constructor (scope: Construct, id: string, props: UpdateModelStateMachineProps) {
+    constructor(scope: Construct, id: string, props: UpdateModelStateMachineProps) {
         super(scope, id);
 
         const {
@@ -171,7 +171,10 @@ export class UpdateModelStateMachine extends Construct {
 
         const stateMachine = new StateMachine(this, 'UpdateModelSM', {
             definitionBody: DefinitionBody.fromChainable(handleJobIntake),
-            role: executionRole
+            ...(executionRole &&
+            {
+                role: executionRole
+            })
         });
 
         this.stateMachineArn = stateMachine.stateMachineArn;

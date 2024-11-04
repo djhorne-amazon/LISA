@@ -168,9 +168,7 @@ export class LisaServeApplicationStack extends Stack {
             subnetGroup: vpc.subnetGroup,
             credentials: dbCreds,
             securityGroups: [litellmDbSg!],
-            removalPolicy: config.removalPolicy,
-            // monitoringRole: '',
-            // cloudwatchLogsRetentionRole: '',
+            removalPolicy: config.removalPolicy
         });
 
         const litellmDbPasswordSecret = litellmDb.secret!;

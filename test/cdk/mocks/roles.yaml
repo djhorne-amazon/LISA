@@ -30,3 +30,7 @@ dev:
 
     #RestAPIRoles
     RestApiAuthorizerRole: TestAuthorizerRole
+
+    #Docs
+    DocsRole: TestDocsRole
+    DocsDeployerRole: TestDocsRole

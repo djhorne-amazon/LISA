@@ -191,9 +191,9 @@ export class ECSCluster extends Construct {
         );
         const taskDefinition = new Ec2TaskDefinition(this, createCdkId([ecsConfig.identifier, 'Ec2TaskDefinition']), {
             family: createCdkId([config.deploymentName, ecsConfig.identifier], 32, 2),
-            taskRole,
-            executionRole,
             volumes,
+            ...(taskRole && {taskRole}),
+            ...(executionRole && {executionRole}),
         });
 
         // Add container to task definition
