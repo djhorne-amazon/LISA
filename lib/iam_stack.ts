@@ -192,7 +192,6 @@ export class LisaServeIAMStack extends Stack {
 
         return new Role(this, ragLambdaRoleId, {
             assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-            roleName: Roles.RAG_LAMBDA_EXECUTION_ROLE,
             description: 'Role used by RAG API lambdas to access AWS resources',
             managedPolicies: [lambdaRagPolicy],
         });
