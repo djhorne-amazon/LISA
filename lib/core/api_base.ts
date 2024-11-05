@@ -36,7 +36,7 @@ export class LisaApiBaseStack extends Stack {
     public readonly rootResourceId: string;
     public readonly restApiUrl: string;
 
-    constructor(scope: Construct, id: string, props: LisaApiBaseStackProps) {
+    constructor (scope: Construct, id: string, props: LisaApiBaseStackProps) {
         super(scope, id, props);
 
         const { config, vpc } = props;

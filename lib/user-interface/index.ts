@@ -1,18 +1,18 @@
 /**
-  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
-  Licensed under the Apache License, Version 2.0 (the "License").
-  You may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License").
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
 import { ExecSyncOptionsWithBufferEncoding, execSync } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -20,9 +20,9 @@ import * as path from 'node:path';
 
 import { RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { AwsIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Effect, IRole, ManagedPolicy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { IRole, ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { BlockPublicAccess, Bucket, BucketEncryption, IBucket } from 'aws-cdk-lib/aws-s3';
+import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
@@ -49,10 +49,10 @@ type UserInterfaceProps = CustomUserInterfaceProps & StackProps;
  */
 export class UserInterfaceStack extends Stack {
     /**
-    * @param {Construct} scope - The parent or owner of the construct.
-    * @param {string} id - The unique identifier for the construct within its scope.
-    * @param {UserInterfaceProps} props - The properties of the construct.
-    */
+     * @param {Construct} scope - The parent or owner of the construct.
+     * @param {string} id - The unique identifier for the construct within its scope.
+     * @param {UserInterfaceProps} props - The properties of the construct.
+     */
     constructor (scope: Construct, id: string, props: UserInterfaceProps) {
         super(scope, id, props);
 
@@ -231,9 +231,9 @@ export class UserInterfaceStack extends Stack {
             retainOnDelete: false,
             destinationBucket: websiteBucket,
             ...(config.roles?.[Roles.UI_DEPLOYMENT_ROLE] &&
-                {
-                    role: Role.fromRoleName(this, createCdkId(['LisaRestApiUri', Roles.UI_DEPLOYMENT_ROLE]), config.roles[Roles.UI_DEPLOYMENT_ROLE])
-                })
+              {
+                  role: Role.fromRoleName(this, createCdkId(['LisaRestApiUri', Roles.UI_DEPLOYMENT_ROLE]), config.roles[Roles.UI_DEPLOYMENT_ROLE]),
+              }),
         });
     }
 

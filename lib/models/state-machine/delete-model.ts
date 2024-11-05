@@ -53,7 +53,7 @@ type DeleteModelStateMachineProps = BaseProps & {
 export class DeleteModelStateMachine extends Construct {
     readonly stateMachineArn: string;
 
-    constructor(scope: Construct, id: string, props: DeleteModelStateMachineProps) {
+    constructor (scope: Construct, id: string, props: DeleteModelStateMachineProps) {
         super(scope, id);
 
         const { config, modelTable, lambdaLayers, role, vpc, securityGroups, restApiContainerEndpointPs, managementKeyName, executionRole } = props;

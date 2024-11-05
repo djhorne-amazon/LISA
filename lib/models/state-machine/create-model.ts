@@ -57,7 +57,7 @@ type CreateModelStateMachineProps = BaseProps & {
 export class CreateModelStateMachine extends Construct {
     readonly stateMachineArn: string;
 
-    constructor(scope: Construct, id: string, props: CreateModelStateMachineProps) {
+    constructor (scope: Construct, id: string, props: CreateModelStateMachineProps) {
         super(scope, id);
 
         const { config, modelTable, lambdaLayers, dockerImageBuilderFnArn, ecsModelDeployerFnArn, ecsModelImageRepository, role, vpc, securityGroups, restApiContainerEndpointPs, managementKeyName, executionRole } = props;

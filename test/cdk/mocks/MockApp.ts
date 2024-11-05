@@ -88,7 +88,7 @@ export default class MockApp {
         const docStack = new LisaDocsStack(app, 'LisaDocs',{
             ...baseStackProps,
             stackName: 'LisaDocs'
-        })
+        });
 
         const stacks = [
             networkingStack,

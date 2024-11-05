@@ -41,7 +41,7 @@ export class LisaDocsStack extends Stack {
      * @param {string} id - The unique identifier for the construct within its scope.
      * @param {DocsProps} props - The properties of the construct.
      */
-    constructor(scope: Construct, id: string, props: DocsProps) {
+    constructor (scope: Construct, id: string, props: DocsProps) {
         super(scope, id, props);
         const { config } = props;
 
@@ -185,7 +185,7 @@ export class LisaDocsStack extends Stack {
      * @param bucket
      * @returns role
      */
-    createApiRole(bucket: IBucket): IRole {
+    createApiRole (bucket: IBucket): IRole {
         const role = new Role(this, `${Stack.of(this).stackName}-s3-reader-role`, {
             assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
             description: 'Allows API gateway to proxy static website assets',

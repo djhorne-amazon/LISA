@@ -47,7 +47,7 @@ type UpdateModelStateMachineProps = BaseProps & {
 export class UpdateModelStateMachine extends Construct {
     readonly stateMachineArn: string;
 
-    constructor(scope: Construct, id: string, props: UpdateModelStateMachineProps) {
+    constructor (scope: Construct, id: string, props: UpdateModelStateMachineProps) {
         super(scope, id);
 
         const {
