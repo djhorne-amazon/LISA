@@ -114,7 +114,7 @@ export class ModelsApi extends Construct {
 
         const ecsModelDeployer = new ECSModelDeployer(this, 'ecs-model-deployer', {
             securityGroupId: vpc.securityGroups.ecsModelAlbSg.securityGroupId,
-            vpcId: vpc.vpc.vpcId,
+            vpcId: vpc.vpc,
             config: config
         });
 

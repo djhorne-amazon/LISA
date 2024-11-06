@@ -21,9 +21,10 @@ import { Stack, Duration, Size } from 'aws-cdk-lib';
 
 import { createCdkId } from '../core/utils';
 import { BaseProps, Config } from '../schema';
+import { IVpc, Peer, Port, Subnet, SubnetSelection } from 'aws-cdk-lib/aws-ec2';
 
 export type ECSModelDeployerProps = {
-    vpcId: string;
+    vpcId: IVpc;
     securityGroupId: string;
     config: Config;
 } & BaseProps;
@@ -60,6 +61,12 @@ export class ECSModelDeployer extends Construct {
             'permissionsBoundaryAspect': props.config.permissionsBoundaryAspect
         };
 
+        const subnetIds = props.vpcId.isolatedSubnets.concat(props.vpcId.privateSubnets).map(subnet => subnet.subnetId);
+
+        const subnetSelection: SubnetSelection = {
+            subnets: subnetIds?.map((subnet, index) => Subnet.fromSubnetId(this, index.toString(), subnet))
+        }
+
         const functionId = createCdkId([stackName, 'ecs_model_deployer']);
         this.ecsModelDeployerFn = new DockerImageFunction(this, functionId, {
             functionName: functionId,
@@ -69,10 +76,12 @@ export class ECSModelDeployer extends Construct {
             memorySize: 1024,
             role: role,
             environment: {
-                'LISA_VPC_ID': props.vpcId,
+                'LISA_VPC_ID': props.vpcId.vpcId,
                 'LISA_SECURITY_GROUP_ID': props.securityGroupId,
                 'LISA_CONFIG': JSON.stringify(stripped_config)
-            }
+            },
+            vpc: props.vpcId,
+            vpcSubnets: subnetSelection
         });
     }
 }
