@@ -61,7 +61,6 @@ enum ECSTaskType {
  */
 export class LisaServeIAMStack extends Stack {
     public readonly taskRoles: RoleInfo[] = [];
-    public readonly autoScalingGroupIamRole: IRole;
 
     /**
      * @param {Construct} scope - The parent or owner of the construct.
@@ -78,11 +77,6 @@ export class LisaServeIAMStack extends Stack {
                 reason: 'Allow use of AmazonSSMManagedInstanceCore policy to allow EC2 to enable SSM core functionality.',
             },
         ]);
-
-        // role for auto scaling group for ECS cluster
-        this.autoScalingGroupIamRole = config.roles?.[Roles.ASG_ROLE] ?
-            Role.fromRoleName(this, 'import', config.roles[Roles.ASG_ROLE]) :
-            this.createAutoScalingGroupRole(config.deploymentName);
 
         /*
         * Create role for Lambda execution if deploying RAG
@@ -195,16 +189,6 @@ export class LisaServeIAMStack extends Stack {
             description: 'Role used by RAG API lambdas to access AWS resources',
             managedPolicies: [lambdaRagPolicy],
         });
-    }
-
-    private createAutoScalingGroupRole (deploymentName: string): IRole {
-        const roleName = createCdkId([deploymentName, Roles.ASG_ROLE]);
-        const role = new Role(this, roleName, {
-            roleName,
-            assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
-        });
-        role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
-        return role;
     }
 
     private createEcsTaskRole (role: ECSRole, roleId: string, roleName: string, taskPolicy: IManagedPolicy): IRole {

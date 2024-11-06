@@ -3,7 +3,6 @@ env: dev
 dev:
   roles:
     #RagRole / LisaServeIam Roles
-    ASGRole: TestAsgRole
     RagLambdaExecutionRole: TestRagRole
     RestApiRole: TestRestRole
     ECSRestApiRole: TestEcsRestApiRole

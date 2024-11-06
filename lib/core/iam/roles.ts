@@ -18,7 +18,6 @@
  * List of all roles used for overrides
  */
 export enum Roles {
-    ASG_ROLE = 'ASGRole',
     DOCKER_IMAGE_BUILDER_DEPLOYMENT_ROLE = 'DockerImageBuilderDeploymentRole',
     DOCKER_IMAGE_BUILDER_EC2_ROLE = 'DockerImageBuilderEC2Role',
     DOCKER_IMAGE_BUILDER_ROLE = 'DockerImageBuilderRole',
